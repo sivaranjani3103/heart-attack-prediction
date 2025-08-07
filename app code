@@ -1,0 +1,452 @@
+import React, { useEffect, useState } from "react";
+import { StyleSheet, Text, View, ScrollView, Image, TouchableOpacity, Platform } from "react-native";
+import { useRouter } from "expo-router";
+import { usePrediction } from "@/context/PredictionContext";
+import { LinearGradient } from "expo-linear-gradient";
+import { Heart, AlertTriangle, ArrowRight, Download, Share2 } from "lucide-react-native";
+import * as Haptics from "expo-haptics";
+import { saveToHistorySafely } from "@/utils/mockPrediction";
+
+export default function ResultsScreen() {
+  const router = useRouter();
+  const { predictionResult } = usePrediction();
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!predictionResult) {
+      router.replace("/scan");
+      return;
+    }
+
+    const saveToHistory = async () => {
+      if (!predictionResult) return;
+
+      try {
+        await saveToHistorySafely(predictionResult);
+        setSaveError(null);
+        console.log('Successfully saved prediction to history');
+      } catch (error: any) {
+        console.error("Failed to save to history:", error);
+        const errorMessage = error.message?.includes('quota') || error.message?.includes('storage') 
+          ? 'Storage is full. Some older scans may have been removed to save this result.'
+          : 'Unable to save scan to history. Please try again.';
+        setSaveError(errorMessage);
+      }
+    };
+    
+    saveToHistory();
+  }, [predictionResult, router]);
+
+  const getRiskColor = () => {
+    if (!predictionResult) return "#718096";
+    
+    switch (predictionResult.riskLevel) {
+      case "High":
+        return "#E53E3E";
+      case "Medium":
+        return "#DD6B20";
+      case "Low":
+        return "#38A169";
+      default:
+        return "#718096";
+    }
+  };
+
+  const handleShare = () => {
+    if (Platform.OS !== "web") {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+    // In a real app, implement sharing functionality
+    alert("Sharing functionality would be implemented here");
+  };
+
+  const handleDownload = () => {
+    if (Platform.OS !== "web") {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+    // In a real app, implement download functionality
+    alert("Download functionality would be implemented here");
+  };
+
+  if (!predictionResult) {
+    return (
+      <View style={styles.container}>
+        <Text>No results available</Text>
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView style={styles.container}>
+      <LinearGradient
+        colors={[getRiskColor(), getRiskColor() + "99"]}
+        style={styles.header}
+      >
+        <View style={styles.headerContent}>
+          <Heart color="#FFFFFF" size={40} />
+          <Text style={styles.riskLevel}>{predictionResult.riskLevel} Risk</Text>
+          <Text style={styles.confidence}>
+            {predictionResult.confidence}% Confidence
+          </Text>
+        </View>
+      </LinearGradient>
+
+      <View style={styles.imageSection}>
+        {predictionResult.imageUri === '[Base64 Image Removed]' ? (
+          <View style={[styles.resultImage, styles.placeholderImage]}>
+            <AlertTriangle color="#A0AEC0" size={60} />
+            <Text style={styles.placeholderText}>Image not available</Text>
+          </View>
+        ) : (
+          <Image source={{ uri: predictionResult.imageUri }} style={styles.resultImage} />
+        )}
+        <View style={styles.actionButtons}>
+          <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
+            <Share2 color="#4A5568" size={20} />
+            <Text style={styles.actionButtonText}>Share</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton} onPress={handleDownload}>
+            <Download color="#4A5568" size={20} />
+            <Text style={styles.actionButtonText}>Save</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.resultSection}>
+        <Text style={styles.sectionTitle}>Analysis Results</Text>
+        
+        <View style={styles.metricsContainer}>
+          {predictionResult.metrics.map((metric, index) => (
+            <View key={index} style={styles.metricItem}>
+              <View style={styles.metricHeader}>
+                <Text style={styles.metricName}>{metric.name}</Text>
+                <View 
+                  style={[
+                    styles.metricValueBadge, 
+                    { backgroundColor: metric.color }
+                  ]}
+                >
+                  <Text style={styles.metricValueText}>{metric.value}</Text>
+                </View>
+              </View>
+              <View style={styles.progressBarContainer}>
+                <View 
+                  style={[
+                    styles.progressBar, 
+                    { width: `${metric.percentage}%`, backgroundColor: metric.color }
+                  ]} 
+                />
+              </View>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.findingsContainer}>
+          <Text style={styles.findingsTitle}>Key Findings</Text>
+          {predictionResult.findings.map((finding, index) => (
+            <View key={index} style={styles.findingItem}>
+              <View 
+                style={[
+                  styles.findingIcon, 
+                  { backgroundColor: finding.critical ? "#FED7D7" : "#E6FFFA" }
+                ]}
+              >
+                {finding.critical ? (
+                  <AlertTriangle color="#E53E3E" size={16} />
+                ) : (
+                  <Heart color="#38A169" size={16} />
+                )}
+              </View>
+              <Text style={styles.findingText}>{finding.text}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.recommendationsSection}>
+        <Text style={styles.sectionTitle}>Recommendations</Text>
+        <Text style={styles.recommendationsText}>
+          Based on your risk assessment, consider the following steps:
+        </Text>
+        
+        {predictionResult.recommendations.map((recommendation, index) => (
+          <View key={index} style={styles.recommendationItem}>
+            <Text style={styles.recommendationTitle}>{recommendation.title}</Text>
+            <Text style={styles.recommendationText}>{recommendation.text}</Text>
+            {recommendation.actionLink && (
+              <TouchableOpacity style={styles.recommendationAction}>
+                <Text style={styles.recommendationActionText}>
+                  {recommendation.actionText}
+                </Text>
+                <ArrowRight color="#3182CE" size={16} />
+              </TouchableOpacity>
+            )}
+          </View>
+        ))}
+      </View>
+
+      {saveError && (
+        <View style={styles.errorContainer}>
+          <AlertTriangle color="#E53E3E" size={16} />
+          <Text style={styles.errorText}>{saveError}</Text>
+        </View>
+      )}
+
+      <View style={styles.disclaimerContainer}>
+        <AlertTriangle color="#E53E3E" size={16} />
+        <Text style={styles.disclaimerText}>
+          This assessment is for informational purposes only and should not replace professional medical advice. Please consult with a healthcare provider for proper diagnosis and treatment.
+        </Text>
+      </View>
+
+      <TouchableOpacity 
+        style={styles.newScanButton}
+        onPress={() => router.push("/scan")}
+      >
+        <Text style={styles.newScanButtonText}>Start New Scan</Text>
+      </TouchableOpacity>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F7FAFC",
+  },
+  header: {
+    paddingVertical: 30,
+  },
+  headerContent: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  riskLevel: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+    marginTop: 10,
+  },
+  confidence: {
+    fontSize: 16,
+    color: "#FFFFFF",
+    opacity: 0.9,
+    marginTop: 5,
+  },
+  imageSection: {
+    alignItems: "center",
+    marginTop: -50,
+    marginBottom: 20,
+  },
+  resultImage: {
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    borderWidth: 4,
+    borderColor: "#FFFFFF",
+  },
+  placeholderImage: {
+    backgroundColor: "#EDF2F7",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  placeholderText: {
+    color: "#A0AEC0",
+    fontSize: 12,
+    marginTop: 5,
+  },
+  actionButtons: {
+    flexDirection: "row",
+    marginTop: 15,
+  },
+  actionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EDF2F7",
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+    marginHorizontal: 5,
+  },
+  actionButtonText: {
+    color: "#4A5568",
+    marginLeft: 5,
+    fontSize: 14,
+  },
+  resultSection: {
+    padding: 20,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#2D3748",
+    marginBottom: 15,
+  },
+  metricsContainer: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  metricItem: {
+    marginBottom: 15,
+  },
+  metricHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 5,
+  },
+  metricName: {
+    fontSize: 16,
+    color: "#2D3748",
+    fontWeight: "500",
+  },
+  metricValueBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  metricValueText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  progressBarContainer: {
+    height: 8,
+    backgroundColor: "#EDF2F7",
+    borderRadius: 4,
+    overflow: "hidden",
+  },
+  progressBar: {
+    height: "100%",
+    borderRadius: 4,
+  },
+  findingsContainer: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  findingsTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#2D3748",
+    marginBottom: 10,
+  },
+  findingItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  findingIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+  },
+  findingText: {
+    fontSize: 14,
+    color: "#4A5568",
+    flex: 1,
+  },
+  recommendationsSection: {
+    padding: 20,
+    paddingTop: 0,
+  },
+  recommendationsText: {
+    fontSize: 16,
+    color: "#4A5568",
+    marginBottom: 15,
+  },
+  recommendationItem: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 15,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  recommendationTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#2D3748",
+    marginBottom: 5,
+  },
+  recommendationText: {
+    fontSize: 14,
+    color: "#4A5568",
+    marginBottom: 10,
+    lineHeight: 20,
+  },
+  recommendationAction: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 5,
+  },
+  recommendationActionText: {
+    color: "#3182CE",
+    fontSize: 14,
+    fontWeight: "500",
+    marginRight: 5,
+  },
+  errorContainer: {
+    flexDirection: "row",
+    backgroundColor: "#FED7D7",
+    borderRadius: 8,
+    padding: 15,
+    margin: 20,
+    marginTop: 0,
+    borderWidth: 1,
+    borderColor: "#E53E3E",
+  },
+  errorText: {
+    fontSize: 14,
+    color: "#9B2C2C",
+    marginLeft: 10,
+    flex: 1,
+    fontWeight: "500",
+  },
+  disclaimerContainer: {
+    flexDirection: "row",
+    backgroundColor: "#FED7D7",
+    borderRadius: 8,
+    padding: 15,
+    margin: 20,
+    marginTop: 0,
+  },
+  disclaimerText: {
+    fontSize: 12,
+    color: "#9B2C2C",
+    marginLeft: 10,
+    flex: 1,
+  },
+  newScanButton: {
+    backgroundColor: "#E53E3E",
+    paddingVertical: 15,
+    borderRadius: 8,
+    alignItems: "center",
+    margin: 20,
+    marginTop: 0,
+  },
+  newScanButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+});
