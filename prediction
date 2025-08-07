@@ -1,0 +1,426 @@
+import { PredictionResult } from "@/types/prediction";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+export function generateMockPrediction(imageUri: string): PredictionResult {
+  // Generate random risk level
+  const riskLevels = ["Low", "Medium", "High"] as const;
+  const randomIndex = Math.floor(Math.random() * 3);
+  const riskLevel = riskLevels[randomIndex];
+  
+  // Generate confidence based on risk level
+  let confidence: number;
+  switch (riskLevel) {
+    case "Low":
+      confidence = 70 + Math.floor(Math.random() * 20);
+      break;
+    case "Medium":
+      confidence = 75 + Math.floor(Math.random() * 15);
+      break;
+    case "High":
+      confidence = 80 + Math.floor(Math.random() * 15);
+      break;
+  }
+
+  // Generate metrics based on risk level
+  const metrics = generateMetrics(riskLevel);
+  
+  // Generate findings based on risk level
+  const findings = generateFindings(riskLevel);
+  
+  // Generate recommendations based on risk level
+  const recommendations = generateRecommendations(riskLevel);
+
+  return {
+    id: generateId(),
+    imageUri,
+    timestamp: Date.now(),
+    riskLevel,
+    confidence,
+    metrics,
+    findings,
+    recommendations,
+  };
+}
+
+function generateId(): string {
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+}
+
+function generateMetrics(riskLevel: "Low" | "Medium" | "High") {
+  switch (riskLevel) {
+    case "Low":
+      return [
+        {
+          name: "Vessel Tortuosity",
+          value: "Normal",
+          percentage: 30,
+          color: "#38A169",
+        },
+        {
+          name: "Arteriovenous Ratio",
+          value: "Normal",
+          percentage: 25,
+          color: "#38A169",
+        },
+        {
+          name: "Microaneurysms",
+          value: "Few",
+          percentage: 20,
+          color: "#38A169",
+        },
+        {
+          name: "Optic Disc Ratio",
+          value: "Normal",
+          percentage: 15,
+          color: "#38A169",
+        },
+      ];
+    case "Medium":
+      return [
+        {
+          name: "Vessel Tortuosity",
+          value: "Moderate",
+          percentage: 55,
+          color: "#DD6B20",
+        },
+        {
+          name: "Arteriovenous Ratio",
+          value: "Borderline",
+          percentage: 60,
+          color: "#DD6B20",
+        },
+        {
+          name: "Microaneurysms",
+          value: "Moderate",
+          percentage: 50,
+          color: "#DD6B20",
+        },
+        {
+          name: "Optic Disc Ratio",
+          value: "Borderline",
+          percentage: 45,
+          color: "#DD6B20",
+        },
+      ];
+    case "High":
+      return [
+        {
+          name: "Vessel Tortuosity",
+          value: "Severe",
+          percentage: 85,
+          color: "#E53E3E",
+        },
+        {
+          name: "Arteriovenous Ratio",
+          value: "Abnormal",
+          percentage: 90,
+          color: "#E53E3E",
+        },
+        {
+          name: "Microaneurysms",
+          value: "Many",
+          percentage: 80,
+          color: "#E53E3E",
+        },
+        {
+          name: "Optic Disc Ratio",
+          value: "Abnormal",
+          percentage: 75,
+          color: "#E53E3E",
+        },
+      ];
+  }
+}
+
+function generateFindings(riskLevel: "Low" | "Medium" | "High") {
+  switch (riskLevel) {
+    case "Low":
+      return [
+        {
+          text: "Normal retinal vascular patterns observed",
+          critical: false,
+        },
+        {
+          text: "Healthy arteriovenous ratio",
+          critical: false,
+        },
+        {
+          text: "No significant microaneurysms detected",
+          critical: false,
+        },
+      ];
+    case "Medium":
+      return [
+        {
+          text: "Moderate changes in vascular tortuosity detected",
+          critical: true,
+        },
+        {
+          text: "Borderline arteriovenous ratio",
+          critical: true,
+        },
+        {
+          text: "Some microaneurysms present",
+          critical: false,
+        },
+        {
+          text: "Early signs of vascular changes that may indicate increased cardiovascular risk",
+          critical: true,
+        },
+      ];
+    case "High":
+      return [
+        {
+          text: "Significant abnormalities in retinal vascular patterns",
+          critical: true,
+        },
+        {
+          text: "Abnormal arteriovenous ratio indicating potential hypertension",
+          critical: true,
+        },
+        {
+          text: "Multiple microaneurysms detected",
+          critical: true,
+        },
+        {
+          text: "Vascular changes consistent with increased cardiovascular risk",
+          critical: true,
+        },
+        {
+          text: "Patterns associated with higher risk of heart attack within 5 years",
+          critical: true,
+        },
+      ];
+  }
+}
+
+function generateRecommendations(riskLevel: "Low" | "Medium" | "High") {
+  switch (riskLevel) {
+    case "Low":
+      return [
+        {
+          title: "Maintain Healthy Lifestyle",
+          text: "Continue with regular exercise and a balanced diet to maintain cardiovascular health.",
+          actionText: "Learn more about heart-healthy diets",
+          actionLink: "https://www.heart.org/en/healthy-living/healthy-eating",
+        },
+        {
+          title: "Regular Check-ups",
+          text: "Schedule routine medical check-ups to monitor your cardiovascular health.",
+        },
+      ];
+    case "Medium":
+      return [
+        {
+          title: "Consult a Healthcare Provider",
+          text: "Schedule an appointment with your doctor to discuss these findings and potential cardiovascular risk factors.",
+          actionText: "Find a cardiologist",
+          actionLink: "https://www.cardiosmart.org/find-a-cardiologist",
+        },
+        {
+          title: "Lifestyle Modifications",
+          text: "Consider adopting a heart-healthy diet, increasing physical activity, and reducing stress.",
+          actionText: "Heart-healthy lifestyle tips",
+          actionLink: "https://www.heart.org/en/healthy-living",
+        },
+        {
+          title: "Monitor Blood Pressure",
+          text: "Regular blood pressure monitoring is recommended to track cardiovascular health.",
+        },
+      ];
+    case "High":
+      return [
+        {
+          title: "Urgent Medical Consultation",
+          text: "Schedule an appointment with a cardiologist as soon as possible to discuss these findings.",
+          actionText: "Find a cardiologist",
+          actionLink: "https://www.cardiosmart.org/find-a-cardiologist",
+        },
+        {
+          title: "Comprehensive Cardiovascular Assessment",
+          text: "Ask your doctor about additional tests such as ECG, stress test, or coronary calcium scan.",
+        },
+        {
+          title: "Medication Review",
+          text: "Discuss potential preventive medications with your healthcare provider.",
+        },
+        {
+          title: "Significant Lifestyle Changes",
+          text: "Implement immediate changes to diet, exercise, and stress management under medical guidance.",
+          actionText: "Cardiac rehabilitation programs",
+          actionLink: "https://www.heart.org/en/health-topics/cardiac-rehab",
+        },
+      ];
+  }
+}
+
+// Storage management utilities
+export const getStorageInfo = async () => {
+  try {
+    const historyData = await AsyncStorage.getItem("predictionHistory");
+    if (!historyData) return { itemCount: 0, sizeKB: 0 };
+    
+    const history = JSON.parse(historyData);
+    const sizeKB = Math.round(new Blob([historyData]).size / 1024);
+    
+    return {
+      itemCount: history.length,
+      sizeKB,
+    };
+  } catch (error) {
+    console.error('Failed to get storage info:', error);
+    return { itemCount: 0, sizeKB: 0 };
+  }
+};
+
+export const cleanupOldHistory = async (maxItems: number = 25) => {
+  try {
+    const historyData = await AsyncStorage.getItem("predictionHistory");
+    if (!historyData) return;
+    
+    const history = JSON.parse(historyData);
+    if (history.length <= maxItems) return;
+    
+    const cleanedHistory = history.slice(0, maxItems);
+    await AsyncStorage.setItem("predictionHistory", JSON.stringify(cleanedHistory));
+    
+    console.log(`Cleaned up history: ${history.length} -> ${cleanedHistory.length} items`);
+  } catch (error) {
+    console.error('Failed to cleanup history:', error);
+  }
+};
+
+// Create a lightweight version of prediction result for storage
+export const createStorageVersion = (result: PredictionResult) => {
+  return {
+    id: result.id,
+    timestamp: result.timestamp,
+    riskLevel: result.riskLevel,
+    confidence: result.confidence,
+    // Always remove image URI to save space
+    imageUri: '[Base64 Image Removed]',
+    // Keep only essential metrics data
+    metrics: result.metrics.slice(0, 3).map(m => ({
+      name: m.name,
+      value: m.value,
+      percentage: m.percentage,
+      color: m.color
+    })),
+    // Keep only critical findings
+    findings: result.findings.filter(f => f.critical).slice(0, 2).map(f => ({
+      text: f.text.length > 100 ? f.text.substring(0, 100) + '...' : f.text,
+      critical: f.critical
+    })),
+    // Keep only first 2 recommendations
+    recommendations: result.recommendations.slice(0, 2).map(r => ({
+      title: r.title,
+      text: r.text.length > 150 ? r.text.substring(0, 150) + '...' : r.text
+    }))
+  };
+};
+
+// Safe storage function with automatic cleanup
+export const saveToHistorySafely = async (result: PredictionResult) => {
+  try {
+    // First, try to get current storage info
+    const storageInfo = await getStorageInfo();
+    console.log('Current storage:', storageInfo);
+    
+    // If storage is getting full, clean up first
+    if (storageInfo.sizeKB > 500) { // If over 500KB
+      await cleanupOldHistory(5); // Keep only 5 items
+    }
+    
+    const historyData = await AsyncStorage.getItem("predictionHistory");
+    let history = historyData ? JSON.parse(historyData) : [];
+    
+    // Check if already saved
+    const isAlreadySaved = history.some((item: any) => item.id === result.id);
+    if (isAlreadySaved) return;
+    
+    // Create lightweight version
+    const lightweightResult = createStorageVersion(result);
+    
+    // Add to history
+    history = [lightweightResult, ...history];
+    
+    // Aggressive cleanup strategy - keep only 10 items max
+    const MAX_ITEMS = 10;
+    if (history.length > MAX_ITEMS) {
+      history = history.slice(0, MAX_ITEMS);
+    }
+    
+    // Try to save with progressive fallback
+    await saveWithFallback(history);
+    
+  } catch (error) {
+    console.error('Failed to save to history:', error);
+    // Try emergency cleanup and save
+    await emergencyCleanupAndSave(result);
+  }
+};
+
+const saveWithFallback = async (history: any[]) => {
+  const attempts = [
+    { items: 10, description: 'full history' },
+    { items: 7, description: 'reduced history' },
+    { items: 5, description: 'minimal history' },
+    { items: 3, description: 'emergency history' },
+    { items: 1, description: 'single item' }
+  ];
+  
+  for (const attempt of attempts) {
+    try {
+      const limitedHistory = history.slice(0, attempt.items);
+      const dataString = JSON.stringify(limitedHistory);
+      
+      // Check size before saving
+      const sizeKB = Math.round(new Blob([dataString]).size / 1024);
+      console.log(`Attempting to save ${attempt.description}: ${sizeKB}KB`);
+      
+      await AsyncStorage.setItem("predictionHistory", dataString);
+      console.log(`Successfully saved ${attempt.description} with ${limitedHistory.length} items (${sizeKB}KB)`);
+      return;
+    } catch (error: any) {
+      if (error.name === 'QuotaExceededError' || 
+          error.message?.includes('quota') ||
+          error.message?.includes('storage') ||
+          error.message?.includes('exceeded')) {
+        console.warn(`Storage quota exceeded for ${attempt.description}, trying smaller size...`);
+        continue;
+      } else {
+        throw error;
+      }
+    }
+  }
+  
+  // If all attempts fail, clear storage completely
+  throw new Error('Unable to save to storage - quota exceeded even for minimal data');
+};
+
+// Emergency cleanup function
+const emergencyCleanupAndSave = async (result: PredictionResult) => {
+  try {
+    console.log('Starting emergency cleanup...');
+    
+    // Clear all storage
+    await AsyncStorage.removeItem("predictionHistory");
+    
+    // Create ultra-minimal version
+    const minimalResult = {
+      id: result.id,
+      timestamp: result.timestamp,
+      riskLevel: result.riskLevel,
+      confidence: result.confidence,
+      imageUri: '[Base64 Image Removed]'
+    };
+    
+    // Try to save just this one item
+    await AsyncStorage.setItem("predictionHistory", JSON.stringify([minimalResult]));
+    console.log('Emergency cleanup successful - saved minimal data');
+    
+  } catch (error) {
+    console.error('Emergency cleanup failed:', error);
+    throw new Error('Storage is completely full and cannot be cleared');
+  }
+};
